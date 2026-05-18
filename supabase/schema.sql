@@ -25,6 +25,10 @@ create index if not exists habit_completions_user_day_idx
 alter table public.habits enable row level security;
 alter table public.habit_completions enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.habits to authenticated;
+grant select, insert, delete on public.habit_completions to authenticated;
+
 drop policy if exists "Users can read their own habits" on public.habits;
 create policy "Users can read their own habits"
 on public.habits
@@ -97,4 +101,3 @@ drop trigger if exists habits_set_updated_at on public.habits;
 create trigger habits_set_updated_at
 before update on public.habits
 for each row execute function public.set_updated_at();
-

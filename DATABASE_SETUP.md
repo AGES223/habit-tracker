@@ -30,6 +30,10 @@ Open the Supabase SQL editor and run `supabase/schema.sql`.
 The schema enables row-level security on both app tables. Each authenticated user can only read,
 create, update, or delete their own habits and habit completions.
 
+This app does not create or query a `public.profiles` table. Signup display names are stored in
+Supabase Auth user metadata, and per-user habit data is stored in `public.habits` and
+`public.habit_completions`.
+
 ## 4. Run the app
 
 For development, run the API server and React dev server in separate terminals:
