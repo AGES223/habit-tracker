@@ -1,4 +1,4 @@
-import { hasSupabaseConfig, supabase } from "./supabaseClient";
+import { apiFetch, isApiUnavailable } from "./apiClient";
 
 const PROFILE_KEY = "ht_profile";
 const SESSION_KEY = "ht_session";
@@ -7,9 +7,9 @@ function normalizeUser(user) {
   if (!user) return null;
   return {
     id: user.id,
-    displayName: user.user_metadata?.display_name || user.user_metadata?.name || "",
+    displayName: user.displayName || user.user_metadata?.display_name || user.user_metadata?.name || "",
     email: user.email,
-    createdAt: user.created_at,
+    createdAt: user.createdAt || user.created_at,
   };
 }
 
@@ -36,29 +36,41 @@ export function getUser() {
 }
 
 export async function refreshUser() {
-  if (!hasSupabaseConfig) return getUser();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) {
+  try {
+    const { user } = await apiFetch("/api/auth/user");
+    const normalizedUser = normalizeUser(user);
+    cacheUser(normalizedUser);
+    return normalizedUser;
+  } catch (error) {
+    if (isApiUnavailable(error)) return getUser();
     cacheUser(null);
     return null;
   }
-  const user = normalizeUser(data.user);
-  cacheUser(user);
-  return user;
 }
 
 export function subscribeToAuth(callback) {
-  if (!hasSupabaseConfig) return () => {};
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    const user = normalizeUser(session?.user);
-    cacheUser(user);
-    callback(user);
-  });
-  return () => data.subscription.unsubscribe();
+  const listener = (event) => callback(event.detail);
+  window.addEventListener("habit-auth-change", listener);
+  return () => window.removeEventListener("habit-auth-change", listener);
+}
+
+function notifyAuthChange(user) {
+  window.dispatchEvent(new CustomEvent("habit-auth-change", { detail: user }));
 }
 
 export async function signUp({ displayName, email, password }) {
-  if (!hasSupabaseConfig) {
+  try {
+    const result = await apiFetch("/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ displayName, email, password }),
+    });
+    const user = normalizeUser(result.user);
+    if (user) cacheUser(user);
+    notifyAuthChange(user);
+    return { ok: true, user, needsEmailConfirmation: result.needsEmailConfirmation };
+  } catch (error) {
+    if (!isApiUnavailable(error)) return { ok: false, error: error.message };
+
     const profile = {
       displayName: displayName.trim(),
       email: email.trim().toLowerCase(),
@@ -67,25 +79,24 @@ export async function signUp({ displayName, email, password }) {
     };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     localStorage.setItem(SESSION_KEY, "1");
+    notifyAuthChange(profile);
     return { ok: true, user: profile };
   }
-
-  const { data, error } = await supabase.auth.signUp({
-    email: email.trim().toLowerCase(),
-    password,
-    options: {
-      data: { display_name: displayName.trim() },
-    },
-  });
-
-  if (error) return { ok: false, error: error.message };
-  const user = normalizeUser(data.user);
-  if (user) cacheUser(user);
-  return { ok: true, user, needsEmailConfirmation: !data.session };
 }
 
 export async function logIn({ email, password }) {
-  if (!hasSupabaseConfig) {
+  try {
+    const result = await apiFetch("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    const user = normalizeUser(result.user);
+    cacheUser(user);
+    notifyAuthChange(user);
+    return { ok: true };
+  } catch (error) {
+    if (!isApiUnavailable(error)) return { ok: false, error: error.message };
+
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
       if (!raw) return { ok: false, error: "No account on this device yet. Sign up first." };
@@ -97,22 +108,20 @@ export async function logIn({ email, password }) {
         return { ok: false, error: "Incorrect password." };
       }
       localStorage.setItem(SESSION_KEY, "1");
+      notifyAuthChange(p);
       return { ok: true };
     } catch {
       return { ok: false, error: "Something went wrong." };
     }
   }
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password,
-  });
-  if (error) return { ok: false, error: error.message };
-  cacheUser(normalizeUser(data.user));
-  return { ok: true };
 }
 
 export async function logOut() {
-  if (hasSupabaseConfig) await supabase.auth.signOut();
+  try {
+    await apiFetch("/api/auth/logout", { method: "POST" });
+  } catch (error) {
+    if (!isApiUnavailable(error)) throw error;
+  }
   cacheUser(null);
+  notifyAuthChange(null);
 }
