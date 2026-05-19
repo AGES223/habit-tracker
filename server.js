@@ -99,6 +99,20 @@ function normalizeUser(user) {
   };
 }
 
+async function normalizeUserWithProfile(client, user) {
+  const normalized = normalizeUser(user);
+  if (!normalized) return null;
+
+  const { data } = await client
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (data?.display_name) normalized.displayName = data.display_name;
+  return normalized;
+}
+
 function sendJson(res, status, body, extraHeaders = {}) {
   res.writeHead(status, {
     "Content-Type": "application/json",
@@ -268,8 +282,11 @@ async function handleApi(req, res, pathname) {
       });
       if (error) return sendJson(res, 400, { error: error.message });
       setAuthCookies(req, res, data.session);
+      const user = data.session
+        ? await normalizeUserWithProfile(createSupabase(data.session.access_token), data.user)
+        : normalizeUser(data.user);
       return sendJson(res, 200, {
-        user: normalizeUser(data.user),
+        user,
         needsEmailConfirmation: !data.session,
       });
     }
@@ -282,7 +299,8 @@ async function handleApi(req, res, pathname) {
       });
       if (error) return sendJson(res, 400, { error: error.message });
       setAuthCookies(req, res, data.session);
-      return sendJson(res, 200, { user: normalizeUser(data.user) });
+      const user = await normalizeUserWithProfile(createSupabase(data.session.access_token), data.user);
+      return sendJson(res, 200, { user });
     }
 
     if (pathname === "/api/auth/logout" && req.method === "POST") {
@@ -295,7 +313,7 @@ async function handleApi(req, res, pathname) {
     if (pathname === "/api/auth/user" && req.method === "GET") {
       const auth = await getAuthenticatedClient(req, res);
       if (!auth) return sendJson(res, 401, { error: "Not signed in." });
-      return sendJson(res, 200, { user: normalizeUser(auth.user) });
+      return sendJson(res, 200, { user: await normalizeUserWithProfile(auth.client, auth.user) });
     }
 
     const storageMatch = pathname.match(/^\/api\/storage\/([^/]+)$/);

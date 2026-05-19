@@ -27,12 +27,26 @@ values to the browser bundle.
 
 Open the Supabase SQL editor and run `supabase/schema.sql`.
 
-The schema enables row-level security on both app tables. Each authenticated user can only read,
-create, update, or delete their own habits and habit completions.
+The schema enables row-level security on the app tables. Each authenticated user can only read,
+create, update, or delete their own profile, habits, and habit completions.
 
-This app does not create or query a `public.profiles` table. Signup display names are stored in
-Supabase Auth user metadata, and per-user habit data is stored in `public.habits` and
-`public.habit_completions`.
+The schema also creates `public.profiles` and a trigger on `auth.users` so new signups get a
+profile row automatically. The trigger only runs for users created after the SQL is installed.
+To backfill profiles for existing auth users, run:
+
+```sql
+insert into public.profiles (id, email, display_name)
+select
+  id,
+  email,
+  coalesce(raw_user_meta_data ->> 'display_name', raw_user_meta_data ->> 'name', '')
+from auth.users
+on conflict (id) do update
+set
+  email = excluded.email,
+  display_name = excluded.display_name,
+  updated_at = now();
+```
 
 ## 4. Run the app
 
