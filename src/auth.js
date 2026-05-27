@@ -2,6 +2,8 @@ import { apiFetch, isApiUnavailable } from "./apiClient";
 
 const PROFILE_KEY = "ht_profile";
 const SESSION_KEY = "ht_session";
+const API_UNAVAILABLE_MESSAGE =
+  "Cloud auth is not connected. Start the API server with Supabase env vars, then try again.";
 
 function normalizeUser(user) {
   if (!user) return null;
@@ -42,7 +44,6 @@ export async function refreshUser() {
     cacheUser(normalizedUser);
     return normalizedUser;
   } catch (error) {
-    if (isApiUnavailable(error)) return getUser();
     cacheUser(null);
     return null;
   }
@@ -69,18 +70,10 @@ export async function signUp({ displayName, email, password }) {
     notifyAuthChange(user);
     return { ok: true, user, needsEmailConfirmation: result.needsEmailConfirmation };
   } catch (error) {
-    if (!isApiUnavailable(error)) return { ok: false, error: error.message };
-
-    const profile = {
-      displayName: displayName.trim(),
-      email: email.trim().toLowerCase(),
-      password,
-      createdAt: Date.now(),
+    return {
+      ok: false,
+      error: isApiUnavailable(error) ? API_UNAVAILABLE_MESSAGE : error.message,
     };
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-    localStorage.setItem(SESSION_KEY, "1");
-    notifyAuthChange(profile);
-    return { ok: true, user: profile };
   }
 }
 
@@ -95,24 +88,10 @@ export async function logIn({ email, password }) {
     notifyAuthChange(user);
     return { ok: true };
   } catch (error) {
-    if (!isApiUnavailable(error)) return { ok: false, error: error.message };
-
-    try {
-      const raw = localStorage.getItem(PROFILE_KEY);
-      if (!raw) return { ok: false, error: "No account on this device yet. Sign up first." };
-      const p = JSON.parse(raw);
-      if (p.email !== email.trim().toLowerCase()) {
-        return { ok: false, error: "Email does not match this account." };
-      }
-      if (p.password && p.password !== password) {
-        return { ok: false, error: "Incorrect password." };
-      }
-      localStorage.setItem(SESSION_KEY, "1");
-      notifyAuthChange(p);
-      return { ok: true };
-    } catch {
-      return { ok: false, error: "Something went wrong." };
-    }
+    return {
+      ok: false,
+      error: isApiUnavailable(error) ? API_UNAVAILABLE_MESSAGE : error.message,
+    };
   }
 }
 

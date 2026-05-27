@@ -22,6 +22,8 @@ PORT=4000
 
 Do not prefix these values with `REACT_APP_`. Create React App exposes `REACT_APP_*`
 values to the browser bundle.
+The server also accepts existing `NEXT_PUBLIC_SUPABASE_*` or `REACT_APP_SUPABASE_*` names for
+compatibility, but new setup should use the server-only names above.
 
 ## 3. Create the tables
 
@@ -58,6 +60,8 @@ npm start
 ```
 
 The React dev server proxies `/api/*` requests to `http://localhost:4000`.
+If the API server is not running or Supabase env vars are missing, signup and login will fail
+instead of creating local-only users that do not appear in Supabase Auth.
 
 For production, build the frontend and serve it through the Node server:
 
@@ -69,5 +73,4 @@ npm run serve
 ## 5. Auth behavior
 
 When the server has Supabase env vars, sign up and login use Supabase Auth through `/api/auth/*`.
-The browser receives HttpOnly session cookies and never sees the Supabase API key. Without server
-env vars, the app keeps using local browser storage so local development still works.
+The browser receives HttpOnly session cookies and never sees the Supabase API key.
