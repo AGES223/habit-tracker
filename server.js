@@ -397,4 +397,11 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Habit Tracker server listening on http://localhost:${PORT}`);
+  if (hasSupabaseConfig) {
+    console.log("Supabase: configured (auth + cloud storage enabled)");
+  } else {
+    console.warn(
+      "Supabase: NOT configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.local"
+    );
+  }
 });
