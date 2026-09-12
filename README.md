@@ -49,3 +49,4 @@ Run `supabase/schema.sql` in the Supabase SQL editor. See `DATABASE_SETUP.md` fo
 - `npm run build`: create a production build.
 - `npm run serve`: serve the production build and API from Node.
 - `npm test`: run the test watcher.
+
