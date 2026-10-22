@@ -386,22 +386,26 @@ function serveStatic(req, res, pathname) {
   fs.createReadStream(finalPath).pipe(res);
 }
 
-const server = http.createServer((req, res) => {
-  const { pathname } = new URL(req.url, `http://${req.headers.host}`);
-  if (pathname.startsWith("/api/")) {
-    handleApi(req, res, pathname);
-    return;
-  }
-  serveStatic(req, res, pathname);
-});
+if (require.main === module) {
+  const server = http.createServer((req, res) => {
+    const { pathname } = new URL(req.url, `http://${req.headers.host}`);
+    if (pathname.startsWith("/api/")) {
+      handleApi(req, res, pathname);
+      return;
+    }
+    serveStatic(req, res, pathname);
+  });
 
-server.listen(PORT, () => {
-  console.log(`Habit Tracker server listening on http://localhost:${PORT}`);
-  if (hasSupabaseConfig) {
-    console.log("Supabase: configured (auth + cloud storage enabled)");
-  } else {
-    console.warn(
-      "Supabase: NOT configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.local"
-    );
-  }
-});
+  server.listen(PORT, () => {
+    console.log(`Habit Tracker server listening on http://localhost:${PORT}`);
+    if (hasSupabaseConfig) {
+      console.log("Supabase: configured (auth + cloud storage enabled)");
+    } else {
+      console.warn(
+        "Supabase: NOT configured. Add SUPABASE_URL and SUPABASE_ANON_KEY to .env.local"
+      );
+    }
+  });
+}
+
+module.exports = { handleApi };

@@ -1,7 +1,7 @@
 # Database setup
 
-This app is wired for Supabase Auth + Postgres through the local Node server.
-Supabase keys are read by `server.js` and are no longer bundled into the browser app.
+This app is wired for Supabase Auth + Postgres through the Node API.
+Supabase keys are read by the server and are not bundled into the browser app.
 
 ## 1. Create a Supabase project
 
@@ -63,7 +63,11 @@ The React dev server proxies `/api/*` requests to `http://localhost:4000`.
 If the API server is not running or Supabase env vars are missing, signup and login will fail
 instead of creating local-only users that do not appear in Supabase Auth.
 
-For production, build the frontend and serve it through the Node server:
+For production on Vercel, the `api/[...path].js` function serves the `/api/*` endpoints
+and the React build serves the frontend. Set `SUPABASE_URL` and `ANON_KEY` in the
+Vercel project environment variables, then redeploy.
+
+For other Node hosts, build the frontend and serve it through the Node server:
 
 ```bash
 npm run build
