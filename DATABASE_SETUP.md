@@ -63,9 +63,9 @@ The React dev server proxies `/api/*` requests to `http://localhost:4000`.
 If the API server is not running or Supabase env vars are missing, signup and login will fail
 instead of creating local-only users that do not appear in Supabase Auth.
 
-For production on Vercel, the `api/[...path].js` function serves the `/api/*` endpoints
-and the React build serves the frontend. Set `SUPABASE_URL` and `ANON_KEY` in the
-Vercel project environment variables, then redeploy.
+For production on Vercel, functions in `api/` serve the auth, health, and storage
+endpoints, and the React build serves the frontend. Set `SUPABASE_URL` and `ANON_KEY`
+in the Vercel project environment variables, then redeploy.
 
 For other Node hosts, build the frontend and serve it through the Node server:
 

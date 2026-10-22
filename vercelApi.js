@@ -1,6 +1,6 @@
-const { handleApi } = require("../server");
+const { handleApi } = require("./server");
 
-module.exports = async function handler(req, res) {
+module.exports = async function handleVercelApi(req, res) {
   const { pathname } = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   return handleApi(req, res, pathname);
 };
