@@ -73,4 +73,4 @@ npm run serve
 ## 5. Auth behavior
 
 When the server has Supabase env vars, sign up and login use Supabase Auth through `/api/auth/*`.
-The browser receives HttpOnly session cookies and never sees the Supabase API key.
+The browser receives HttpOnly session cookies and never sees the Supabase API key.n
